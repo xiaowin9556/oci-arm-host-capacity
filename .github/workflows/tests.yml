@@ -1,16 +1,8 @@
 name: Tests
-
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-#  schedule:
-#    - cron: '*/5 * * * *'
-
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -26,7 +18,6 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Validate composer.json and composer.lock
         run: composer validate
-
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
@@ -37,27 +28,27 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-
-
       - name: Install dependencies
         run: |
           composer update --prefer-dist --no-progress
+      - name: Write private key file
+        run: |
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > /tmp/oci_private_key.pem
+          chmod 600 /tmp/oci_private_key.pem
       - name: Run test suite
         run: |
           vendor/bin/phpunit --color tests/
         env:
           OCI_REGION: ${{ secrets.OCI_REGION }}
-          OCI_USER_ID: ${{ secrets.OCI_USER_ID }}
-          OCI_TENANCY_ID: ${{ secrets.OCI_TENANCY_ID }}
-          OCI_KEY_FINGERPRINT: ${{ secrets.OCI_KEY_FINGERPRINT }}
-          OCI_PRIVATE_KEY_FILENAME: ${{ secrets.OCI_PRIVATE_KEY_FILENAME }}
-          OCI_AVAILABILITY_DOMAIN: ${{ secrets.OCI_AVAILABILITY_DOMAIN }}
-          OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_ID }}
-          OCI_IMAGE_ID: ${{ secrets.OCI_IMAGE_ID }}
-          OCI_OCPUS: ${{ secrets.OCI_OCPUS }}
-          OCI_MEMORY_IN_GBS: ${{ secrets.OCI_MEMORY_IN_GBS }}
-          OCI_SHAPE: ${{ secrets.OCI_SHAPE }}
+          OCI_USER_ID: ${{ secrets.OCI_USER_OCID }}
+          OCI_TENANCY_ID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_KEY_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_PRIVATE_KEY_FILENAME: /tmp/oci_private_key.pem
+          OCI_AVAILABILITY_DOMAIN: ${{ vars.OCI_AVAILABILITY_DOMAIN }}
+          OCI_SUBNET_ID: ${{ vars.OCI_SUBNET_ID }}
+          OCI_IMAGE_ID: ${{ vars.OCI_IMAGE_ID }}
+          OCI_OCPUS: ${{ vars.OCI_OCPUS }}
+          OCI_MEMORY_IN_GBS: ${{ vars.OCI_MEMORY_IN_GBS }}
+          OCI_SHAPE: ${{ vars.OCI_SHAPE }}
           OCI_MAX_INSTANCES: ${{ secrets.OCI_MAX_INSTANCES }}
           OCI_SSH_PUBLIC_KEY: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
-          TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
-          TELEGRAM_BOT_API_KEY: ${{ secrets.TELEGRAM_BOT_API_KEY }}
-
