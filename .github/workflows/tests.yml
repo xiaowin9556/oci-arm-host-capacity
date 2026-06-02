@@ -1,45 +1,27 @@
-name: Tests
+name: Create OCI Instance
 on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
 jobs:
-  tests:
+  create:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-versions: ['8.3']
-    name: integration-tests (PHP ${{ matrix.php-versions }})
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Validate composer.json and composer.lock
-        run: composer validate
-      - name: Get Composer Cache Directory
-        id: composer-cache
-        run: |
-          echo "::set-output name=dir::$(composer config cache-files-dir)"
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-
+          php-version: '8.3'
       - name: Install dependencies
-        run: |
-          composer update --prefer-dist --no-progress
+        run: composer install --prefer-dist --no-progress
       - name: Write private key file
         env:
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
         run: |
           echo "$OCI_PRIVATE_KEY" | base64 -d > /tmp/oci_private_key.pem
           chmod 600 /tmp/oci_private_key.pem
-      - name: Run test suite
-        run: |
-          vendor/bin/phpunit --color tests/
+      - name: Run
+        run: php index.php
         env:
           OCI_REGION: ${{ secrets.OCI_REGION }}
           OCI_USER_ID: ${{ secrets.OCI_USER_OCID }}
